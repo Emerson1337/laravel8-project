@@ -1,8 +1,18 @@
 <a href="{{route('posts.create')}}">Cadastrar</a>
 <hr>
-<h1>Posts</h1>
+@if(session('message'))
+<div>
+    {{ session('message') }}
+</div>
+@endif
 
+<h1>Posts</h1>
+@if(isset($posts))
 @foreach($posts as $post)
-<p>{{$post->title}}</p>
-<p>{{$post->content }}</p>
+<p><strong>
+        Título: </strong>{{$post->title}} [ <a href="{{route('posts.show', ['id' => $post->id])}}">Ver</a> ]
+    [ <a href="{{route('posts.edit', ['id' => $post->id])}}">Editar</a> ]
+</p>
+<p><strong>Descrição: </strong>{{$post->content }} </p>
 @endforeach
+@endif

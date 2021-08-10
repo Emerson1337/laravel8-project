@@ -13,7 +13,7 @@ class StoreUpdatePost extends FormRequest
      */
     public function authorize()
     {
-        return false;
+        return true;
     }
 
     /**
@@ -24,7 +24,8 @@ class StoreUpdatePost extends FormRequest
     public function rules()
     {
         return [
-            //
+            'title' => 'required|min:3|max:160',
+            'content' => ['required', 'min:5', 'max:10000']
         ];
     }
 }
