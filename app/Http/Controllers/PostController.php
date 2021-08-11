@@ -4,13 +4,15 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreUpdatePost;
 use App\Models\Post;
+use Illuminate\Support\Str;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class PostController extends Controller
 {
     public function index()
     {
-        $posts = Post::get();
+        $posts = Post::orderBy('id', 'ASC')->paginate(1);
         return view('admin.posts.index', compact('posts'));
     }
 
@@ -21,10 +23,17 @@ class PostController extends Controller
 
     public function store(StoreUpdatePost $request)
     {
-        Post::create([
-            'title' => $request->title,
-            'content' => $request->content,
-        ]);
+        $data = $request->all();
+
+        if ($request->image->isValid()) {
+
+            $nameFile = Str::of($request->title)
+                ->slug('-') . '.' . $request->image->getClientOriginalExtension();
+            $image = $request->image->storeAs('posts', $nameFile);
+            $data['image'] = $image;
+        }
+
+        Post::create($data);
         return redirect()->route('posts.index')->with('message', 'Post criado com sucesso!');
     }
 
@@ -46,6 +55,10 @@ class PostController extends Controller
             return redirect()->route('posts.index')->with('errors', 'Post não encontrado');
         }
 
+        if (Storage::exists($post->image)) {
+            Storage::delete($post->image);
+        };
+
         $post->delete();
         return redirect()->route('posts.index')->with('message', 'Post deletado com sucesso!');
     }
@@ -57,7 +70,7 @@ class PostController extends Controller
             return redirect()->back();
         }
 
-        return view('admin.posts.create', compact('post'));
+        return view('admin.posts.edit', compact('post'));
     }
 
     public function update(StoreUpdatePost $request, $id)
@@ -66,7 +79,34 @@ class PostController extends Controller
         if (!$post) {
             return redirect()->back();
         }
-        $post->update($request->all());
+
+        $data = $request->all();
+
+        if ($request->image && $request->image->isValid()) {
+
+            if (Storage::exists($post->image)) {
+                Storage::delete($post->image);
+            };
+
+            $nameFile = Str::of($request->title)
+                ->slug('-') . '.' . $request->image->getClientOriginalExtension();
+            $image = $request->image->storeAs('posts', $nameFile);
+            $data['image'] = $image;
+        }
+
+
+        $post->update($data);
         return redirect()->route('posts.index')->with('message', 'Post editado com sucesso!');
+    }
+
+    public function search(Request $request)
+    {
+        $filters = $request->except('_token');
+
+        $posts = Post::where('title', '=', "%$request->search%")
+            ->orWhere('content', 'LIKE', "%{$request->search}%")
+            ->paginate(1);
+
+        return view('admin.posts.index', compact('posts', 'filters'));
     }
 }
